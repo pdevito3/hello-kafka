@@ -1,6 +1,7 @@
 namespace RecipeManagement.Extensions.Services;
 
 using OpenTelemetry;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
@@ -8,6 +9,26 @@ public static class OpenTelemetryServiceExtension
 {
     public static void OpenTelemetryRegistration(this IServiceCollection services, string serviceName)
     {
+        services.AddOpenTelemetryMetrics(metrics =>
+        {
+            metrics
+                .AddAspNetCoreInstrumentation()
+                .AddRuntimeInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddEventCountersInstrumentation(c =>
+                {
+                    // https://learn.microsoft.com/en-us/dotnet/core/diagnostics/available-counters
+                    c.AddEventSources(
+                        "Microsoft.AspNetCore.Hosting",
+                        // There's currently a bug preventing this from working
+                        // "Microsoft-AspNetCore-Server-Kestrel"
+                        "System.Net.Http", 
+                        "System.Net.Sockets",
+                        "System.Net.NameResolution",
+                        "System.Net.Security");
+                });
+        });
+        
         services.AddOpenTelemetryTracing(builder =>
         {
             builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
