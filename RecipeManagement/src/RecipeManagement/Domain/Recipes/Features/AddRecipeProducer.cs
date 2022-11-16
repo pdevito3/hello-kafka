@@ -7,37 +7,50 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
+using Confluent.Kafka;
+using Dtos;
 using RecipeManagement.Databases;
+using Serilog;
 
 public static class AddRecipeProducer
 {
-    public sealed class AddRecipeProducerCommand : IRequest<bool>
+    public sealed class Command : IRequest<bool>
     {
-        public AddRecipeProducerCommand()
+        public RecipeForCreationDto Recipe;
+
+        public Command(RecipeForCreationDto recipe)
         {
+            Recipe = recipe;
         }
     }
 
-    public sealed class Handler : IRequestHandler<AddRecipeProducerCommand, bool>
+    public sealed class Handler : IRequestHandler<Command, bool>
     {
-        private readonly IPublishEndpoint _publishEndpoint;
+        private readonly ITopicProducer<IRecipeAdded> _publishEndpoint;
         private readonly IMapper _mapper;
         private readonly RecipesDbContext _db;
 
-        public Handler(RecipesDbContext db, IMapper mapper, IPublishEndpoint publishEndpoint)
+        public Handler(RecipesDbContext db, IMapper mapper, ITopicProducer<IRecipeAdded> publishEndpoint)
         {
             _publishEndpoint = publishEndpoint;
             _mapper = mapper;
             _db = db;
         }
 
-        public async Task<bool> Handle(AddRecipeProducerCommand request, CancellationToken cancellationToken)
+        public async Task<bool> Handle(Command request, CancellationToken cancellationToken)
         {
+            Log.Logger.Warning("AddRecipeProducer: {@Recipe}", request.Recipe);
+            
             var message = new RecipeAdded
             {
-                // map content to message here or with mapster
+                Title = request.Recipe.Title
             };
-            await _publishEndpoint.Publish<IRecipeAdded>(message, cancellationToken);
+            
+            // produce message with kafka 
+            await _publishEndpoint.Produce(
+                message,
+                // new Message<Null, IRecipeAdded> { Value = message }, 
+                cancellationToken);
 
             return true;
         }

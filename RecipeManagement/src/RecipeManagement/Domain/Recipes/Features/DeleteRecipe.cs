@@ -34,7 +34,7 @@ public static class DeleteRecipe
 
         public async Task<bool> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteRecipes);
+            // await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteRecipes);
 
             var recordToDelete = await _recipeRepository.GetById(request.Id, cancellationToken: cancellationToken);
 

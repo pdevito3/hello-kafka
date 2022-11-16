@@ -61,7 +61,6 @@ public sealed class RecipesController: ControllerBase
     [ProducesResponseType(401)]
     [ProducesResponseType(403)]
     [ProducesResponseType(500)]
-    [Authorize]
     [Produces("application/json")]
     [HttpGet(Name = "GetRecipes")]
     public async Task<IActionResult> GetRecipes([FromQuery] RecipeParametersDto recipeParametersDto)
@@ -102,7 +101,6 @@ public sealed class RecipesController: ControllerBase
     [ProducesResponseType(401)]
     [ProducesResponseType(403)]
     [ProducesResponseType(500)]
-    [Authorize]
     [Produces("application/json")]
     [HttpGet("{id:guid}", Name = "GetRecipe")]
     public async Task<ActionResult<RecipeDto>> GetRecipe(Guid id)
@@ -127,7 +125,6 @@ public sealed class RecipesController: ControllerBase
     [ProducesResponseType(401)]
     [ProducesResponseType(403)]
     [ProducesResponseType(500)]
-    [Authorize]
     [Consumes("application/json")]
     [Produces("application/json")]
     [HttpPost(Name = "AddRecipe")]
@@ -139,6 +136,15 @@ public sealed class RecipesController: ControllerBase
         return CreatedAtRoute("GetRecipe",
             new { commandResponse.Id },
             commandResponse);
+    }
+
+    [HttpPost("producer", Name = "AddRecipeProducer")]
+    public async Task<ActionResult<RecipeDto>> AddRecipeProducer([FromBody] RecipeForCreationDto recipeForCreation)
+    {
+        var command = new AddRecipeProducer.Command(recipeForCreation);
+        var commandResponse = await _mediator.Send(command);
+
+        return Ok();
     }
 
 
@@ -155,7 +161,6 @@ public sealed class RecipesController: ControllerBase
     [ProducesResponseType(401)]
     [ProducesResponseType(403)]
     [ProducesResponseType(500)]
-    [Authorize]
     [Produces("application/json")]
     [HttpPut("{id:guid}", Name = "UpdateRecipe")]
     public async Task<IActionResult> UpdateRecipe(Guid id, RecipeForUpdateDto recipe)
@@ -180,7 +185,6 @@ public sealed class RecipesController: ControllerBase
     [ProducesResponseType(401)]
     [ProducesResponseType(403)]
     [ProducesResponseType(500)]
-    [Authorize]
     [Produces("application/json")]
     [HttpDelete("{id:guid}", Name = "DeleteRecipe")]
     public async Task<ActionResult> DeleteRecipe(Guid id)

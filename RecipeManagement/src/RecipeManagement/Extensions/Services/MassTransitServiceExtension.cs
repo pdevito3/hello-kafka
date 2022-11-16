@@ -2,14 +2,14 @@ namespace RecipeManagement.Extensions.Services;
 
 using RecipeManagement.Resources;
 using MassTransit;
-using RecipeManagement.Extensions.Services.ProducerRegistrations;
-using RecipeManagement.Extensions.Services.ConsumerRegistrations;
 using SharedKernel.Messages;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Reflection;
+using Confluent.Kafka;
+using Domain.Recipes.Features;
 
 public static class MassTransitServiceExtension
 {
@@ -18,25 +18,27 @@ public static class MassTransitServiceExtension
         if (!env.IsEnvironment(Consts.Testing.IntegrationTestingEnvName) 
             && !env.IsEnvironment(Consts.Testing.FunctionalTestingEnvName))
         {
-            services.AddMassTransit(mt =>
+            services.AddMassTransit(x =>
             {
-                mt.AddConsumers(Assembly.GetExecutingAssembly());
-                mt.UsingRabbitMq((context, cfg) =>
+                x.UsingInMemory((context, cfg) =>
                 {
-                    cfg.Host(Environment.GetEnvironmentVariable("RMQ_HOST"), 
-                        ushort.Parse(Environment.GetEnvironmentVariable("RMQ_PORT")), 
-                        Environment.GetEnvironmentVariable("RMQ_VIRTUAL_HOST"), 
-                        h =>
+                    cfg.ConfigureEndpoints(context);
+                });
+                
+                x.AddRider(rider =>
+                {
+                    rider.AddConsumer<AddToBook>();
+                    rider.AddProducer<IRecipeAdded>("recipe-added");
+                    rider.UsingKafka((context, k) =>
+                    {
+                        k.Host("localhost:9092");
+
+                        k.TopicEndpoint<IRecipeAdded>("recipe-added", nameof(RecipeManagement), c =>
                         {
-                            h.Username(Environment.GetEnvironmentVariable("RMQ_USERNAME"));
-                            h.Password(Environment.GetEnvironmentVariable("AUTH_PASSWORD"));
+                            c.ConfigureConsumer<AddToBook>(context);
+                            c.CreateIfMissing(t => t.NumPartitions = 1);
                         });
-
-                    // Producers -- Do Not Delete This Comment
-                    cfg.AddRecipeProducerEndpoint();
-
-                    // Consumers -- Do Not Delete This Comment
-                    cfg.AddToBookEndpoint(context);
+                    });
                 });
             });
             services.AddOptions<MassTransitHostOptions>();

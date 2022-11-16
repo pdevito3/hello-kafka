@@ -6,10 +6,12 @@ namespace SharedKernel.Messages
     public interface IRecipeAdded
     {
         public Guid RecipeId { get; set; }
+        public string Title { get; set; }
     }
 
     public class RecipeAdded : IRecipeAdded
     {
         public Guid RecipeId { get; set; }
+        public string Title { get; set; }
     }
 }
